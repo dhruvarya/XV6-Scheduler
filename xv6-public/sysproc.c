@@ -26,6 +26,21 @@ sys_wait(void)
   return wait();
 }
 
+int 
+sys_waitx(void)
+{
+  int *wtime;
+  int *rtime;
+  
+  if(argptr(0, (char**)&wtime, sizeof(int)) < 0)
+    return -1;
+
+  if(argptr(1, (char**)&rtime, sizeof(int)) < 0)
+    return -1;
+
+  return waitx(wtime, rtime);
+}
+
 int
 sys_kill(void)
 {
@@ -88,4 +103,16 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+int 
+sys_set_priority(void)
+{
+  int priority;
+  if(argint(0, &priority) < 0)
+    return -1;
+  int pid;
+  if(argint(1, &pid) < 0)
+    return -1;
+  return set_priority(priority, pid);
 }
