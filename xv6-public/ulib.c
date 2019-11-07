@@ -1,5 +1,6 @@
 #include "types.h"
 #include "stat.h"
+#include "pstat.h"
 #include "fcntl.h"
 #include "user.h"
 #include "x86.h"

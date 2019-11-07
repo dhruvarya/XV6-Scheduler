@@ -55,7 +55,10 @@ struct proc {
   int priority;                // Priority
   /** MLFQ **/
   int curr_ticks;
-  int level;  
+  int level;
+  int last_run;  
+  int ticks[5];
+  int num_run;
 };
 
 // Process memory is laid out contiguously, low addresses first:

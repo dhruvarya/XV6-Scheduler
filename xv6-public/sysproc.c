@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "pstat.h"
 
 int
 sys_fork(void)
@@ -115,4 +116,13 @@ sys_set_priority(void)
   if(argint(1, &pid) < 0)
     return -1;
   return set_priority(priority, pid);
+}
+
+int 
+sys_getpinfo(void)
+{
+  struct proc_stat *pstat;
+  if(argptr(0, (char**)&pstat, sizeof(int)) < 0)
+    return -1;
+  return getpinfo(pstat);
 }

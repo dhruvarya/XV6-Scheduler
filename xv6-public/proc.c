@@ -1,3 +1,4 @@
+#include "pstat.h"
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -114,6 +115,11 @@ found:
   p->priority = 60;
   p->curr_ticks = 0;
   p->level = 0;
+  p->last_run = p->ctime;
+  for(int i=0;i<5;i++){
+    p->ticks[i] = 0;
+  }
+  p->num_run = 0;
 
   release(&ptable.lock);
 
@@ -431,6 +437,7 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+      p->num_run++;
     }
     release(&ptable.lock);
 
@@ -482,6 +489,7 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+      p->num_run++;
     }
     release(&ptable.lock);
 
@@ -532,6 +540,7 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+      p->num_run++;
     }
 
     release(&ptable.lock);
@@ -587,6 +596,9 @@ scheduler(void)
               swtch(&(c->scheduler), p->context);
               switchkvm();
               c->proc = 0;
+              p->num_run++;
+              p->ticks[p->level]++;
+              p->last_run = ticks;
               // pop_front(i); 
               if(p->curr_ticks >= (1 << i)) {
                 p->level++;
@@ -615,7 +627,7 @@ scheduler(void)
     // acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       // cprintf("gandu");
-      if(p->state != RUNNABLE)
+      if(p->state != RUNNABLE || p->level != 4)
         continue;
 
       // Switch to chosen process.  It is the process's job
@@ -627,6 +639,7 @@ scheduler(void)
       //   push_back(p->pid, 3);
       //   p->curr_ticks = 0;
       // }
+      // cprintf("%s is selected at %d level\n", p->name, p->level);
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -637,9 +650,35 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
+      p->num_run++;
+      p->ticks[p->level]++;
+      p->last_run = ticks;
       // cprintf("madarchod\n");
       // release(&ptable.lock);
       // goto found;
+    }
+    int j;
+
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      // cprintf("%s at level %d with state %s", p->name, p->level, p->state);
+      if(p->state == RUNNABLE && ticks - p->last_run > 1000 && p->level >= 1 && p->level <= 3) {
+        for(i = front[p->level]; i < rear[p->level]; i++) {
+          if(queue[p->level][i] == p->pid) {
+            for(j = i+1; j < rear[p->level]; j++){
+              queue[p->level][j-1] = queue[p->level][j];
+            }
+            // cprintf("%s starvation\n", p->name);
+            break;
+          }
+        }
+        rear[p->level]--;
+        p->level--;
+        push_back(p->pid, p->level);
+      }
+      else if(p->state == RUNNABLE && p->level == 4 && ticks - p->last_run > 1000) {
+        push_back(p->pid, 3);
+        // cprintf("%s starvaton\n", p->name);
+      }
     }
     release(&ptable.lock);
 
@@ -820,7 +859,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %s %s %d %d", p->pid, state, p->name, p->priority, p->ctime);
+    cprintf("%d %s %s %d %d %d", p->pid, state, p->name, p->priority, p->ctime, p->level);
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
@@ -853,4 +892,20 @@ set_priority(int priority, int pid)
     yield();
   }
   return old_priority;    
+}
+
+int
+getpinfo(struct proc_stat *pstat)
+{
+  struct proc *p = myproc();
+  if(p == 0) {
+    return -1;
+  }
+  pstat->pid = p->pid;
+  pstat->runtime = p->rtime; //in milliseconds
+  pstat->num_run = p->num_run;
+  pstat->current_queue = p->level;
+  for(int i=0;i<5;i++)
+    pstat->ticks[i] = p->ticks[i];
+  return 0;
 }
