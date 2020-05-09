@@ -9,7 +9,7 @@ main(int argc, char *argv[])
 {
     int id = fork();
     if (id == 0) {
-        set_priority(20, 0);
+        set_priority(30, 0);
         double z, d = 1, x = 0, ll = 1;
         for (int i = 0; i < 50; ++i) {
             sleep(10);
@@ -32,7 +32,7 @@ main(int argc, char *argv[])
         }
         printf(1, "\n");
         #endif
-        printf(1, "test 2 ended\n");
+        printf(1, "test 3 ended\n");
         exit();
     }
     int wtime, rtime;

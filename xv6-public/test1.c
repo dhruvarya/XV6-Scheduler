@@ -7,24 +7,32 @@
 int
 main(int argc, char *argv[])
 {
-    struct proc_stat ps;
     int id = fork();
     if (id == 0) {
         set_priority(10, 0);
-        double z, d = 1, x = 0;
-        for (int i = 0; i < 5; ++i) {
-            getpinfo(&ps);
-            printf(1, "\nPID == %d\nRun_time = %d\nNum_run = %d\ncurrent_queue=%d\n", ps.pid, ps.runtime, ps.num_run, ps.current_queue);
-            for(int i=0;i<5;i++) {
-                printf(1, "%d ", ps.ticks[i]);
-            }
-            for (int j = 0; j < 10; ++j) {
-                for (z = 0; z < 8000000; z += d) {
-                    x = x + 3.14 * 89.64; // useless calcs
+        double z, d = 1, x = 0, ll = 1;
+        for (int i = 0; i < 50; ++i) {
+            sleep(10);
+            for (z = 0; z < 8000000; z += d) {
+                x = x + 1.14 * 69.420;
+                for(int k = 0; k < 5; k++) {
+                    ll = ll * (i+1) + z;
+                    ll *= 5; // useless calc
                 }
+                ll = ll - (z+1);
             }
         }
-        printf(1, "foo 2 ended\n");
+        #ifdef MLFQ
+        struct proc_stat ps;
+        getpinfo(&ps);
+        printf(1, "\nPID == %d\nRun_time = %d\nNum_run = %d\ncurrent_queue=%d\n", ps.pid, ps.runtime, ps.num_run, ps.current_queue);
+        printf(1, "ticks : ");
+        for(int i=0;i<5;i++) {
+            printf(1, "%d ", ps.ticks[i]);
+        }
+        printf(1,"\n");
+        #endif
+        printf(1, "test 1 ended\n");
         exit();
     }
     int wtime, rtime;

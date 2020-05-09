@@ -6,22 +6,31 @@
 int
 main(int argc, char *argv[])
 {
-    int id = fork();
-    if (id == 0) {
-        set_priority(0, 0);
-        double z, d = 1, x = 0;
-        for (int i = 0; i < 5; ++i) {
-            for (int j = 0; j < 10; ++j) {
-                for (z = 0; z < 80000; z += d) {
-                    x = x + 3.14 * 89.64; // useless calcs
-                }
-            }
-        }
-        printf(1, "foo 1 ended\n");
-        exit();
+    int c1 = fork();
+    char *file[] = {"test1", 0};
+    if(c1 == 0) {
+    	printf(1, "starting test1\n");
+    	exec(file[0], file);
+    	exit();
     }
-    int wtime, rtime;
-    waitx(&wtime, &rtime);
-    printf(1, "wait = %d run = %d\n", wtime, rtime);
+    // sleep(100);
+    char *file1[] = {"test2", 0};
+    int c2 = fork();
+    if(c2 == 0) {
+    	printf(1, "starting test2\n");
+    	exec(file1[0], file1);
+    	exit();
+    }
+    // sleep(100);
+    char *file2[] = {"test3", 0};
+    int c3 = fork();
+    if(c3 == 0) {
+    	printf(1, "starting test3\n");
+    	exec(file2[0], file2);
+    	exit();
+    }
+    wait();
+    wait();
+    wait();
     exit();
 }

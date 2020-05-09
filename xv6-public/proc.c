@@ -527,6 +527,7 @@ scheduler(void)
         }
       }
       p = selectp;  
+      // cprintf("%s is scheduled\n", p->name);
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
@@ -568,6 +569,35 @@ scheduler(void)
     for(i = 0; i < 4; i++) {
       // cprintf("%d %d\n", front[i], rear[i]);
         // acquire(&ptable.lock);
+        int j,k;
+
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+          // cprintf("%s at level %d with state %s", p->name, p->level, p->state);
+          if(p->state == RUNNABLE && ticks - p->last_run > 1000 && p->level >= 1 && p->level <= 3) {
+            for(k = front[p->level]; k < rear[p->level]; k++) {
+              if(queue[p->level][i] == p->pid) {
+                for(j = k+1; j < rear[p->level]; j++){
+                  queue[p->level][j-1] = queue[p->level][j];
+                }
+                // cprintf("%s starvation\n", p->name);
+                break;
+              }
+            }
+            rear[p->level]--;
+            p->level--;
+            p->last_run = ticks;
+            push_back(p->pid, p->level);
+          }
+          else if(p->state == RUNNABLE && p->level == 4 && ticks - p->last_run > 1000) {
+            p->last_run = ticks;
+            p->level--;
+            push_back(p->pid, 3);
+            // cprintf("%s starvaton\n", p->name);
+          }
+        }
+
+
+
         if(front[i] == rear[i] || front[i] == -1) {
           // cprintf("level %d is empty\n", i);
           // release(&ptable.lock);
@@ -588,6 +618,7 @@ scheduler(void)
               }
               pop_front(i);
               p->curr_ticks++;
+              p->num_run++;
               // cprintf("%s is selected at %d level with %d ticks\n", p->name, p->level, p->curr_ticks);
               c->proc = p;
               switchuvm(p);
@@ -596,7 +627,6 @@ scheduler(void)
               swtch(&(c->scheduler), p->context);
               switchkvm();
               c->proc = 0;
-              p->num_run++;
               p->ticks[p->level]++;
               p->last_run = ticks;
               // pop_front(i); 
@@ -641,6 +671,7 @@ scheduler(void)
       // }
       // cprintf("%s is selected at %d level\n", p->name, p->level);
       c->proc = p;
+      p->num_run++;
       switchuvm(p);
       p->state = RUNNING;
 
@@ -650,36 +681,13 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-      p->num_run++;
       p->ticks[p->level]++;
       p->last_run = ticks;
       // cprintf("madarchod\n");
       // release(&ptable.lock);
       // goto found;
     }
-    int j;
-
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      // cprintf("%s at level %d with state %s", p->name, p->level, p->state);
-      if(p->state == RUNNABLE && ticks - p->last_run > 1000 && p->level >= 1 && p->level <= 3) {
-        for(i = front[p->level]; i < rear[p->level]; i++) {
-          if(queue[p->level][i] == p->pid) {
-            for(j = i+1; j < rear[p->level]; j++){
-              queue[p->level][j-1] = queue[p->level][j];
-            }
-            // cprintf("%s starvation\n", p->name);
-            break;
-          }
-        }
-        rear[p->level]--;
-        p->level--;
-        push_back(p->pid, p->level);
-      }
-      else if(p->state == RUNNABLE && p->level == 4 && ticks - p->last_run > 1000) {
-        push_back(p->pid, 3);
-        // cprintf("%s starvaton\n", p->name);
-      }
-    }
+    
     release(&ptable.lock);
 
   }
